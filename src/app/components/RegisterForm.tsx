@@ -6,14 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 
-const loginSchema = z.object({
+const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().optional(),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function LoginForm() {
+export default function RegisterForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,16 +23,16 @@ export default function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,17 +43,13 @@ export default function LoginForm() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Login failed");
+        throw new Error(result.error || "Registration failed");
       }
 
-      // Store the token in localStorage
-      localStorage.setItem("token", result.token);
-      localStorage.setItem("user", JSON.stringify(result.user));
-
-      // Redirect to dashboard or home page
-      router.push("/dashboard");
+      // Redirect to login page on success
+      router.push("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -61,13 +58,28 @@ export default function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-gray-800 p-8 rounded-xl shadow-xl w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center text-white mb-8">Sign in</h2>
+        <h2 className="text-3xl font-bold text-center text-white mb-8">Register</h2>
         {error && (
           <div className="mb-4 p-3 bg-red-500 text-white rounded-lg">
             {error}
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+              Name (optional)
+            </label>
+            <input
+              id="name"
+              type="text"
+              {...register("name")}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-coral-500 focus:border-transparent transition duration-200"
+              placeholder="Enter your name"
+            />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+            )}
+          </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
               Email
@@ -103,16 +115,16 @@ export default function LoginForm() {
             disabled={isLoading}
             className="w-full bg-coral-500 text-white py-3 px-4 rounded-xl hover:bg-coral-600 focus:outline-none focus:ring-2 focus:ring-coral-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Signing in..." : "Sign in"}
+            {isLoading ? "Registering..." : "Register"}
           </button>
         </form>
         <p className="mt-4 text-center text-gray-300">
-          Don't have an account?{" "}
-          <a href="/register" className="text-coral-500 hover:text-coral-400">
-            Register
+          Already have an account?{" "}
+          <a href="/login" className="text-coral-500 hover:text-coral-400">
+            Sign in
           </a>
         </p>
       </div>
     </div>
   );
-}
+} 
