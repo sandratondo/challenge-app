@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verify } from 'jsonwebtoken';
 
 export function middleware(request: NextRequest) {
   // Get the pathname of the request
   const path = request.nextUrl.pathname;
+
+  // Handle API routes
+  if (path.startsWith('/api/')) {
+    // Add CORS headers for API routes
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
+  }
 
   // Define public paths that don't require authentication
   const isPublicPath = path === '/login' || path === '/register';
@@ -31,6 +40,6 @@ export const config = {
     '/login',
     '/register',
     '/dashboard/:path*',
-    '/api/auth/:path*',
+    '/api/:path*',
   ],
 }; 

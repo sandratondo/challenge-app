@@ -32,24 +32,39 @@ export default function RegisterForm() {
       setIsLoading(true);
       setError(null);
 
+      console.log('Submitting registration data:', data);
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
+      // Check if the response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(result.error || "Registration failed");
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error('Registration failed');
       }
+
+      const result = await response.json();
+      console.log('Response data:', result);
 
       // Redirect to login page on success
       router.push("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      console.error("Registration error:", err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
