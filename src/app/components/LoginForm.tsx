@@ -3,20 +3,21 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { useToast } from "../context/ToastContext";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { showToast } = useToast();
 
   const {
     register,
@@ -29,9 +30,7 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
-      setError(null);
-
-      console.log('Attempting login with:', data.email);
+      console.log("Attempting login...");
 
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -41,27 +40,23 @@ export default function LoginForm() {
         body: JSON.stringify(data),
       });
 
-      console.log('Login response status:', response.status);
-
-      const result = await response.json();
-      console.log('Login response data:', result);
+      console.log("Response status:", response.status);
+      const responseData = await response.json();
+      console.log("Response data:", responseData);
 
       if (!response.ok) {
-        throw new Error(result.error || "Login failed");
+        throw new Error(responseData.message || "Login failed");
       }
 
       // Store user data in localStorage
-      localStorage.setItem("user", JSON.stringify(result.user));
+      localStorage.setItem("user", JSON.stringify(responseData.user));
+      console.log("User data stored in localStorage");
 
-      console.log('User data stored in localStorage');
-
-      // Redirect to dashboard or home page
-      console.log('Attempting to redirect to dashboard...');
-      window.location.href = '/dashboard';
-      console.log('Redirect command executed');
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : "Login failed");
+      showToast("Login successful!", "success");
+      window.location.href = "/dashboard";
+    } catch (error) {
+      console.error("Login error:", error);
+      showToast(error instanceof Error ? error.message : "Login failed", "error");
     } finally {
       setIsLoading(false);
     }
@@ -71,11 +66,6 @@ export default function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-gray-800 p-8 rounded-xl shadow-xl w-full max-w-md">
         <h2 className="text-3xl font-bold text-center text-white mb-8">Sign in</h2>
-        {error && (
-          <div className="mb-4 p-3 bg-red-500 text-white rounded-lg">
-            {error}
-          </div>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
