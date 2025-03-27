@@ -46,10 +46,21 @@ export async function POST(req: Request) {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
-    return NextResponse.json({
+    // Create the response
+    const response = NextResponse.json({
       user: userWithoutPassword,
       token,
     });
+
+    // Set the token in a cookie
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24, // 1 day
+    });
+
+    return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

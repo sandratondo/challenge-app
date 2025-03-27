@@ -31,6 +31,8 @@ export default function LoginForm() {
       setIsLoading(true);
       setError(null);
 
+      console.log('Attempting login with:', data.email);
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -39,19 +41,26 @@ export default function LoginForm() {
         body: JSON.stringify(data),
       });
 
+      console.log('Login response status:', response.status);
+
       const result = await response.json();
+      console.log('Login response data:', result);
 
       if (!response.ok) {
         throw new Error(result.error || "Login failed");
       }
 
-      // Store the token in localStorage
-      localStorage.setItem("token", result.token);
+      // Store user data in localStorage
       localStorage.setItem("user", JSON.stringify(result.user));
 
+      console.log('User data stored in localStorage');
+
       // Redirect to dashboard or home page
-      router.push("/dashboard");
+      console.log('Attempting to redirect to dashboard...');
+      window.location.href = '/dashboard';
+      console.log('Redirect command executed');
     } catch (err) {
+      console.error('Login error:', err);
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setIsLoading(false);
