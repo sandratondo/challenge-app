@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
+import { useToast } from "../context/ToastContext";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -16,7 +17,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterForm() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -30,7 +31,6 @@ export default function RegisterForm() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsLoading(true);
-      setError(null);
 
       console.log('Submitting registration data:', data);
 
@@ -38,33 +38,26 @@ export default function RegisterForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
         },
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
       console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Response data:', result);
 
-      // Check if the response is ok before trying to parse JSON
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error('Registration failed');
+        throw new Error(result.error || 'Registration failed');
       }
 
-      const result = await response.json();
-      console.log('Response data:', result);
+      // Show success message
+      showToast("Registration successful! Please log in.", "success");
 
       // Redirect to login page on success
       router.push("/login");
     } catch (err) {
       console.error("Registration error:", err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Registration failed. Please try again.");
-      }
+      showToast(err instanceof Error ? err.message : "Registration failed", "error");
     } finally {
       setIsLoading(false);
     }
@@ -74,11 +67,6 @@ export default function RegisterForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-gray-800 p-8 rounded-xl shadow-xl w-full max-w-md">
         <h2 className="text-3xl font-bold text-center text-white mb-8">Register</h2>
-        {error && (
-          <div className="mb-4 p-3 bg-red-500 text-white rounded-lg">
-            {error}
-          </div>
-        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
