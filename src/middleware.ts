@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verify } from 'jsonwebtoken';
 
 export function middleware(request: NextRequest) {
   // Get the pathname of the request
@@ -20,39 +19,15 @@ export function middleware(request: NextRequest) {
   const isPublicPath = path === '/login' || path === '/register';
 
   // Get the token from the cookies
-  const token = request.cookies.get('token')?.value;
-
-  // Verify token if it exists
-  let isValidToken = false;
-  if (token) {
-    try {
-      verify(token, process.env.JWT_SECRET || "your-secret-key");
-      isValidToken = true;
-    } catch (error) {
-      // Token is invalid or expired
-      isValidToken = false;
-    }
-  }
+  const token = request.cookies.get('token')?.value || '';
 
   // Redirect logic
-  if (isPublicPath && isValidToken) {
-    // If user is logged in and tries to access login/register, redirect to dashboard
+  if (isPublicPath && token) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  if (!isPublicPath && !isValidToken) {
-    // If user is not logged in and tries to access protected routes, redirect to login
+  if (!isPublicPath && !token) {
     return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // If user is not logged in and tries to access root path, redirect to login
-  if (path === '/' && !isValidToken) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // If user is logged in and tries to access root path, redirect to dashboard
-  if (path === '/' && isValidToken) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return NextResponse.next();
