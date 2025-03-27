@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "../context/ToastContext";
 
 interface User {
   id: string;
@@ -11,25 +12,73 @@ interface User {
 
 export default function Dashboard() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
+    const checkUser = () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        console.log("User data from localStorage:", userStr);
+        
+        if (!userStr) {
+          console.log("No user data found");
+          setUser(null);
+          return;
+        }
+
+        const userData = JSON.parse(userStr);
+        console.log("Parsed user data:", userData);
+        setUser(userData);
+      } catch (error) {
+        console.error("Error checking user:", error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkUser();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      // Call the logout API
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      // Clear localStorage
+      localStorage.clear();
+      
+      // Show success message
+      showToast("Logged out successfully!", "success");
+      
+      // Redirect to login page
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      showToast("Error during logout", "error");
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-white">Loading...</div>
+        <div className="text-white">Redirecting to login...</div>
       </div>
     );
   }
