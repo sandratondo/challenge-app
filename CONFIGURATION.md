@@ -59,3 +59,12 @@ JWT_SECRET="your-secret-key"
 - Puerto MySQL actual: 3306
 - Puerto Next.js: 3000
 - Necesario cambiar puertos en Docker para evitar conflictos 
+
+# Verificar puerto 3306 (MySQL)
+netstat -ano | findstr :3306
+
+# Verificar puerto 80 (HTTP)
+netstat -ano | findstr :80
+
+# Verificar puerto 443 (HTTPS)
+netstat -ano | findstr :443 
