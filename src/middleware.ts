@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { SECURITY } from './lib/security';
 
 export function middleware(request: NextRequest) {
   // Get the pathname of the request
@@ -7,11 +8,20 @@ export function middleware(request: NextRequest) {
 
   // Handle API routes
   if (path.startsWith('/api/')) {
-    // Add CORS headers for API routes
     const response = NextResponse.next();
+
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+    // Add CORS headers for API routes
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
     return response;
   }
 
@@ -19,7 +29,7 @@ export function middleware(request: NextRequest) {
   const isPublicPath = path === '/login' || path === '/register';
 
   // Get the token from the cookies
-  const token = request.cookies.get('token')?.value || '';
+  const token = request.cookies.get(SECURITY.JWT.COOKIE_NAME)?.value || '';
 
   // Redirect logic
   if (isPublicPath && token) {

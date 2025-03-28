@@ -3,15 +3,14 @@ import { hash } from 'bcryptjs';
 import { prisma } from '../../../../lib/db';
 import * as z from 'zod';
 import { Prisma } from '@prisma/client';
+import { SECURITY, security } from '../../../../lib/security';
 
 const userSchema = z.object({
   email: z.string().email(),
   password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-      "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
-    ),
+    .min(SECURITY.PASSWORD.MIN_LENGTH, `Password must be at least ${SECURITY.PASSWORD.MIN_LENGTH} characters`)
+    .max(SECURITY.PASSWORD.MAX_LENGTH, `Password must not exceed ${SECURITY.PASSWORD.MAX_LENGTH} characters`)
+    .regex(SECURITY.PASSWORD.REGEX, SECURITY.PASSWORD.REGEX_MESSAGE),
   name: z.string().optional(),
 });
 
@@ -24,9 +23,21 @@ export async function POST(req: Request) {
     // Validate the request body
     const { email, password, name } = userSchema.parse(body);
 
+    // Sanitize inputs
+    const sanitizedEmail = security.sanitizeInput(email);
+    const sanitizedName = name ? security.sanitizeInput(name) : undefined;
+
+    // Check if password is in common passwords list
+    if (security.isCommonPassword(password)) {
+      return NextResponse.json(
+        { error: 'This password is too common. Please choose a stronger password.' },
+        { status: 400 }
+      );
+    }
+
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: sanitizedEmail },
     });
 
     if (existingUser) {
@@ -36,15 +47,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 12);
+    // Hash password with configured salt rounds
+    const hashedPassword = await hash(password, SECURITY.PASSWORD.SALT_ROUNDS);
 
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: sanitizedEmail,
         password: hashedPassword,
-        name,
+        name: sanitizedName,
       },
     });
 
