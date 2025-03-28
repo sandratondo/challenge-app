@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useToast } from "../context/ToastContext";
+import Link from "next/link";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -96,6 +97,14 @@ export default function LoginForm() {
             {errors.password && (
               <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
             )}
+          </div>
+          <div className="flex items-center justify-between">
+            <Link
+              href="/request-reset"
+              className="text-sm text-coral-500 hover:text-coral-400"
+            >
+              Forgot your password?
+            </Link>
           </div>
           <button
             type="submit"
