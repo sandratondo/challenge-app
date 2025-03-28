@@ -6,7 +6,12 @@ import { Prisma } from '@prisma/client';
 
 const userSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+    ),
   name: z.string().optional(),
 });
 
